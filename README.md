@@ -1,4 +1,4 @@
-A Highly Scalable End-to-End deployment static website deployment
+A Highly Scalable Distributed End-to-End deployment Engine
 
 - Redis (logging)
 - AWS s3, AWS ECS (deployment and storage)
