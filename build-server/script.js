@@ -28,7 +28,7 @@ function disConnectLogs() {
         console.error('No active Redis client to disconnect.');
         return;
     }
-    publishLog('<- Last Log -> ')
+    publishLog('<- Completed Deployment, stopping Logs -> ')
     publisher.disconnect()
 }
 
@@ -60,7 +60,7 @@ async function init() {
         for (const file of distFolderContents) {
             const filePath = path.join(distFolderPath, file)
             if (fs.lstatSync(filePath).isDirectory()) continue;
-            console.log('--- uploading ----', filePath);
+            console.log('---- uploading ----', filePath);
 
             const command = new PutObjectCommand({
                 Bucket: process.env.S3_BUCKET,
@@ -70,7 +70,7 @@ async function init() {
             })
             await s3Client.send(command)
             publishLog(`uploaded ${file}`)
-            console.log('--- uploaded ----', filePath);
+            console.log('---- uploaded ----', filePath);
         }
         console.log('Done...')
         publishLog('--> uploaded all files <-- ')
