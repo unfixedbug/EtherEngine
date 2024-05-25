@@ -1,1 +1,6 @@
 .env
+.*node_modules*
+build-server/node_modules
+api-server/node_modules
+
+s3-reverse-proxy/node_modules
