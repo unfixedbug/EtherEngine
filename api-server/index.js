@@ -10,12 +10,8 @@ const SOCKET_PORT = 9002
 
 
 const app = express()
-const PORT = 9000
-
 const subscriber = new Redis('localhost:6379')
-
 const io = new Server({ cors: '*' })
-io.listen(9001, () => console.log('Socker Server running gracefully on 9001'))
 
 const ecsClient = new ECSClient({
     region: 'eu-north-1',
@@ -85,14 +81,8 @@ app.post('/project', async(req, res) => {
 })
 
 
-proxy.on('proxyReq', (proxyReq, req, res) => {
-    const url = req.url;
-    if (url === '/')
-        proxyReq.path += 'index.html'
-})
-
 async function initRedisSubscribe() {
-    console.log('Subscribed to Log --->')
+    console.log('Subscribed to Logs --->')
     subscriber.psubscribe('logs:*')
     subscriber.on('pmessage', (pattern, channel, message) => {
         io.to(channel).emit('message', message)

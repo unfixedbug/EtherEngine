@@ -17,7 +17,7 @@ const s3Client = new S3Client({
 
 const PROJECT_ID = process.env.PROJECT_ID
 
-const publisher = new Redis('https://localhost:6379/')
+const publisher = new Redis('localhost:6379')
 
 function publishLog(log) {
     publisher.publish(`logs:${PROJECT_ID}`, JSON.stringify({ log }))
