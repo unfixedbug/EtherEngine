@@ -1,5 +1,5 @@
 FROM ubuntu:focal
-# sudo docker build -t build-server . creating docker
+
 RUN apt-get update
 RUN apt-get install -y curl
 RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
@@ -18,5 +18,5 @@ RUN npm install
 
 RUN chmod +x main.sh
 RUN chmod +x script.js
-# as soon as the container gets up 
+
 ENTRYPOINT [ "/home/app/main.sh" ]

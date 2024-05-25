@@ -4,13 +4,14 @@ const fs = require('fs')
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
 const mime = require('mime-types')
 const Redis = require('ioredis')
+require('dotenv').config()
 
 
 const s3Client = new S3Client({
-    region: '',
+    region: 'eu-north-1',
     credentials: {
-        accessKeyId: process.env.S3_ACCESS_KEY_ID,
-        secretAccessKey: S3_ACCESS_KEY
+        accessKeyId: process.env.S3_ACCESS_KEY,
+        secretAccessKey: process.env.S3_SECRET_ACCESS_KEY
     }
 })
 
@@ -44,28 +45,26 @@ async function init() {
         console.log('Build Complete')
         publishLog('Build Completed')
         const distFolderPath = path.join(__dirname, 'output', 'dist')
-
-        const distFolderContents = fs.readdirSYnc(distFolderPath, { recursive: true })
+        const distFolderContents = fs.readdirSync(distFolderPath, { recursive: true })
 
         publishLog('Starting to upload')
         for (const file of distFolderContents) {
             const filePath = path.join(distFolderPath, file)
-
             if (fs.lstatSync(filePath).isDirectory()) continue;
             console.log('--- uploading ----', filePath);
 
             const command = new PutObjectCommand({
                 Bucket: process.env.S3_BUCKET,
-                Key: `__outputs/${PROJECT_ID}/${filePath}`,
+                Key: `__outputs/${PROJECT_ID}/${file}`,
                 Body: fs.createReadStream(filePath),
                 ContentType: mime.lookup(filePath)
             })
             await s3Client.send(command)
             publishLog(`uploaded ${file}`)
-            console.log('--- uploadded ----', filePath);
+            console.log('--- uploaded ----', filePath);
         }
-        publishLog('Done ')
-        console.log('Done ...');
+        console.log('Done...')
+
     })
 }
 
