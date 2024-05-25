@@ -10,7 +10,7 @@ const SOCKET_PORT = 9002
 
 
 const app = express()
-const subscriber = new Redis('localhost:6379')
+const subscriber = new Redis(process.env.REDIS)
 const io = new Server({ cors: '*' })
 
 const ecsClient = new ECSClient({
@@ -62,7 +62,8 @@ app.post('/project', async(req, res) => {
                     { name: 'PROJECT_ID', value: projectSlug },
                     { name: 'S3_ACCESS_KEY', value: process.env.S3_ACCESS_KEY },
                     { name: 'S3_SECRET_ACCESS_KEY', value: process.env.S3_SECRET_ACCESS_KEY },
-                    { name: 'S3_BUCKET', value: process.env.S3_BUCKET }
+                    { name: 'S3_BUCKET', value: process.env.S3_BUCKET },
+                    { name: 'REDIS_PUB', value: process.env.REDIS }
                 ]
             }]
         }
