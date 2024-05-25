@@ -1,15 +1,16 @@
 const express = require('express')
 const httpProxy = require('http-proxy')
 const app = express()
+require('dotenv').config()
 
 const PORT = 8000
 
-const BASE_PATH = 'localhost'
+const BASE_PATH = process.env.S3_BUCKET_URL
 
 const proxy = httpProxy.createProxy()
 
 app.use((req, res) => {
-    const hostName = req.hostname;
+    const hostname = req.hostname;
     const subdomain = hostname.split('.')[0];
 
     const resolvesTo = `${BASE_PATH}/${subdomain}`
