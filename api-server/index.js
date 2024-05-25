@@ -3,6 +3,11 @@ const { generateSlug } = require('random-word-slugs')
 const { ECSClient, RunTaskCommand } = require('@aws-sdk/client-ecs')
 const { Server } = require('socket.io')
 const Redis = require('ioredis')
+require('dotenv').config()
+
+const API_PORT = 9000
+const SOCKET_PORT = 9002
+
 
 const app = express()
 const PORT = 9000
@@ -13,7 +18,7 @@ const io = new Server({ cors: '*' })
 io.listen(9001, () => console.log('Socker Server running gracefully on 9001'))
 
 const ecsClient = new ECSClient({
-    region: 'dakota',
+    region: 'eu-north-1',
     credentials: {
         accessKeyId: process.env.ECS_ACCESS_ID,
         secretAccessKey: process.env.ECS_SECRET_KEY
@@ -26,6 +31,13 @@ const config = {
 }
 
 app.use(express.json())
+
+io.on('connection', socket => {
+    socket.on('subscribe', channel => {
+        socket.join(channel)
+        socket.emit('message', `Joined ${channel} by unfixedbug`)
+    })
+})
 
 app.post('/project', async(req, res) => {
     const { gitUrl, slug } = req.body
@@ -51,7 +63,10 @@ app.post('/project', async(req, res) => {
                 name: 'builder-image',
                 environment: [
                     { name: 'GIT_REPO_URL', value: gitUrl },
-                    { name: 'PROJECT_ID', value: projectSlug }
+                    { name: 'PROJECT_ID', value: projectSlug },
+                    { name: 'S3_ACCESS_KEY', value: process.env.S3_ACCESS_KEY },
+                    { name: 'S3_SECRET_ACCESS_KEY', value: process.env.S3_SECRET_ACCESS_KEY },
+                    { name: 'S3_BUCKET', value: process.env.S3_BUCKET }
                 ]
             }]
         }
@@ -85,4 +100,6 @@ async function initRedisSubscribe() {
 }
 initRedisSubscribe()
 
-app.listen(PORT, () => console.log(`<--- API Server Running.. ${PORT}`))
+app.listen(API_PORT, () => console.log(` API Server Running on : ${API_PORT}`))
+
+io.listen(SOCKET_PORT, () => console.log(`Socker Server running gracefully on ${SOCKET_PORT}}`))
