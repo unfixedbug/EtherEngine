@@ -4,6 +4,7 @@ const fs = require('fs')
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
 const mime = require('mime-types')
 const Redis = require('ioredis')
+const { Kafka } = require('kafkajs')
 require('dotenv').config()
 
 
@@ -16,47 +17,70 @@ const s3Client = new S3Client({
 })
 
 const PROJECT_ID = process.env.PROJECT_ID
+const DEPLOYMENT_ID = process.env.DEPLOYMENT_ID
 
-const publisher = new Redis(process.env.REDIS_PUB)
+const kafka = new Kafka({
+    clientId: `docker-build-server-${DEPLOYMENT_ID}`,
+    brokers: ['test'],
+    ssl: {},
+    sasl: {
+        username: 'bug',
+        password: 'bug',
+        mechanism: 'plain'
+    }
+})
 
-function publishLog(log) {
-    publisher.publish(`logs:${PROJECT_ID}`, JSON.stringify({ log }))
+
+const producer = kafka.producer()
+
+async function publishLog(log) {
+
+    await producer.send({
+        topic: `container-logs`,
+        messages: [{
+            key: 'log',
+            value: JSON.stringify({ PROJECT_ID, DEPLOYMENT_ID, log })
+        }]
+    })
 }
 
-function disConnectLogs() {
+async function disConnectLogs() {
     if (!publisher) {
         console.error('No active Redis client to disconnect.');
         return;
     }
     publishLog('<- Completed Deployment, stopping Logs -> ')
-    publisher.disconnect()
+    await producer.disconnect()
 }
 
 async function init() {
+
+    await producer.connect()
+
     console.log("Executing Build Script")
-    publishLog('<--- Build Started --->')
+    await publishLog('<--- Build Started --->')
     const outDirPath = path.join(__dirname, 'output')
 
     const p = exec(`cd ${outDirPath} && npm install && npm run build`)
 
-    p.stdout.on('data', function(data) {
+    p.stdout.on('data', async function(data) {
         console.log(data.toString())
-        publishLog(data.toString())
+        await publishLog(data.toString())
     })
 
-    p.stdout.on('error', function(data) {
+    p.stdout.on('error', async function(data) {
         console.log('Error', data.toString())
 
-        publishLog(`error: ${data.toString()}`)
+        await publishLog(`error: ${data.toString()}`)
     })
 
     p.stdout.on('close', async function() {
         console.log('Build Complete')
-        publishLog('Build Completed')
+        await publishLog('Build Completed')
         const distFolderPath = path.join(__dirname, 'output', 'dist')
         const distFolderContents = fs.readdirSync(distFolderPath, { recursive: true })
 
-        publishLog('Starting to upload')
+        await publishLog('Starting to upload')
         for (const file of distFolderContents) {
             const filePath = path.join(distFolderPath, file)
             if (fs.lstatSync(filePath).isDirectory()) continue;
@@ -69,13 +93,12 @@ async function init() {
                 ContentType: mime.lookup(filePath)
             })
             await s3Client.send(command)
-            publishLog(`uploaded ${file}`)
+            await publishLog(`uploaded ${file}`)
             console.log('---- uploaded ----', filePath);
         }
         console.log('Done...')
-        publishLog('--> uploaded all files <-- ')
-        disConnectLogs()
-
+        await publishLog('--> uploaded all files <-- ')
+        await disConnectLogs()
     })
 }
 
