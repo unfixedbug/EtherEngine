@@ -23,9 +23,18 @@ function publishLog(log) {
     publisher.publish(`logs:${PROJECT_ID}`, JSON.stringify({ log }))
 }
 
+function disConnectLogs() {
+    if (!publisher) {
+        console.error('No active Redis client to disconnect.');
+        return;
+    }
+    publishLog('<- Last Log -> ')
+    publisher.disconnect()
+}
+
 async function init() {
     console.log("Executing Build Script")
-    publishLog('<---- Build Startedd --->')
+    publishLog('<--- Build Started --->')
     const outDirPath = path.join(__dirname, 'output')
 
     const p = exec(`cd ${outDirPath} && npm install && npm run build`)
@@ -64,6 +73,8 @@ async function init() {
             console.log('--- uploaded ----', filePath);
         }
         console.log('Done...')
+        publishLog('--> uploaded all files <-- ')
+        disConnectLogs()
 
     })
 }
